@@ -1,54 +1,80 @@
 <?php
-function solveDoomsdayEscape() {
-    $input = file('php://stdin');
-    $firstLine = explode(' ', trim($input[0]));
-    $n = (int)$firstLine[0];
-    $m = (int)$firstLine[1];
+class UnionFind {
+    private $parent = [];
+    private $rank = [];
     
-    $grid = [];
-    $visited = array_fill(0, $n, array_fill(0, $m, false));
-    $queue = new SplQueue();
-    
-    for ($i = 0; $i < $n; $i++) {
-        $grid[$i] = array_map('intval', explode(' ', trim($input[$i + 1])));
+    public function __construct($size) {
+        for ($i = 0; $i < $size; $i++) {
+            $this->parent[$i] = $i;
+            $this->rank[$i] = 0;
+        }
     }
     
-    // Check starting cell
-    if ($grid[0][0] == 0) {
-        echo "NO\n";
-        return;
+    public function find($x) {
+        if ($this->parent[$x] != $x) {
+            $this->parent[$x] = $this->find($this->parent[$x]);
+        }
+        return $this->parent[$x];
     }
     
-    $queue->enqueue([0, 0, 0]);
-    $visited[0][0] = true;
-    
-    $directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
-    $found = false;
-    
-    while (!$queue->isEmpty()) {
-        [$x, $y, $time] = $queue->dequeue();
+    public function union($x, $y) {
+        $xRoot = $this->find($x);
+        $yRoot = $this->find($y);
         
-        if ($x == $n - 1 && $y == $m - 1) {
-            $found = true;
-            break;
+        if ($xRoot == $yRoot) {
+            return false;
         }
         
-        foreach ($directions as $dir) {
-            $nx = $x + $dir[0];
-            $ny = $y + $dir[1];
-            
-            if ($nx >= 0 && $nx < $n && $ny >= 0 && $ny < $m && !$visited[$nx][$ny]) {
-                $newTime = $time + 1;
-                if ($newTime < $grid[$nx][$ny]) {
-                    $visited[$nx][$ny] = true;
-                    $queue->enqueue([$nx, $ny, $newTime]);
-                }
+        if ($this->rank[$xRoot] < $this->rank[$yRoot]) {
+            $this->parent[$xRoot] = $yRoot;
+        } else {
+            $this->parent[$yRoot] = $xRoot;
+            if ($this->rank[$xRoot] == $this->rank[$yRoot]) {
+                $this->rank[$xRoot]++;
+            }
+        }
+        
+        return true;
+    }
+}
+
+function solveForestPowerGrid($n, $m, $edges) {
+    if ($n == 0) return -1;
+    
+    usort($edges, function($a, $b) {
+        return $a[2] - $b[2];
+    });
+    
+    $uf = new UnionFind($n);
+    $totalCost = 0;
+    $edgesUsed = 0;
+    
+    foreach ($edges as $edge) {
+        $u = $edge[0] - 1;
+        $v = $edge[1] - 1;
+        $w = $edge[2];
+        
+        if ($uf->find($u) != $uf->find($v)) {
+            $uf->union($u, $v);
+            $totalCost += $w;
+            $edgesUsed++;
+            if ($edgesUsed == $n - 1) {
+                break;
             }
         }
     }
     
-    echo $found ? "YES\n" : "NO\n";
+    return $edgesUsed == $n - 1 ? $totalCost : -1;
 }
 
-solveDoomsdayEscape();
+$input = "4 4\n1 2 5\n2 3 6\n3 4 2\n4 1 3";
+
+$lines = explode("\n", trim($input));
+[$n, $m] = array_map('intval', explode(' ', $lines[0]));
+$edges = [];
+for ($i = 1; $i <= $m; $i++) {
+    $edges[] = array_map('intval', explode(' ', $lines[$i]));
+}
+
+echo solveForestPowerGrid($n, $m, $edges);
 ?>

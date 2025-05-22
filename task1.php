@@ -1,74 +1,50 @@
 <?php
-class UnionFind {
-    private $parent = [];
-    private $rank = [];
-
-    public function __construct($size) {
-        for ($i = 1; $i <= $size; $i++) {
-            $this->parent[$i] = $i;
-            $this->rank[$i] = 0;
+function solveDoomsdayEscape($n, $m, $grid) {
+    $directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+    $visited = array_fill(0, $n, array_fill(0, $m, false));
+    $queue = new SplPriorityQueue();
+    $queue->insert([0, 0, 0], PHP_INT_MAX);
+    
+    while (!$queue->isEmpty()) {
+        $current = $queue->extract();
+        $time = $current[0];
+        $i = $current[1];
+        $j = $current[2];
+        
+        if ($i == $n - 1 && $j == $m - 1) {
+            return "YES";
         }
-    }
-
-    public function find($x) {
-        if ($this->parent[$x] != $x) {
-            $this->parent[$x] = $this->find($this->parent[$x]);
+        
+        if ($visited[$i][$j]) {
+            continue;
         }
-        return $this->parent[$x];
-    }
-
-    public function union($x, $y) {
-        $xRoot = $this->find($x);
-        $yRoot = $this->find($y);
-
-        if ($xRoot == $yRoot) return false;
-
-        if ($this->rank[$xRoot] < $this->rank[$yRoot]) {
-            $this->parent[$xRoot] = $yRoot;
-        } else {
-            $this->parent[$yRoot] = $xRoot;
-            if ($this->rank[$xRoot] == $this->rank[$yRoot]) {
-                $this->rank[$xRoot]++;
+        $visited[$i][$j] = true;
+        
+        foreach ($directions as $dir) {
+            $ni = $i + $dir[0];
+            $nj = $j + $dir[1];
+            
+            if ($ni >= 0 && $ni < $n && $nj >= 0 && $nj < $m && !$visited[$ni][$nj]) {
+                $newTime = $time + 1;
+                if ($newTime < $grid[$ni][$nj]) {
+                    $priority = ($n - 1 - $ni) + ($m - 1 - $nj);
+                    $queue->insert([$newTime, $ni, $nj], $priority);
+                }
             }
         }
-        return true;
     }
+    
+    return "NO";
 }
 
-function solvePowerGrid() {
-    $input = file('php://stdin');
-    $firstLine = explode(' ', trim($input[0]));
-    $n = (int)$firstLine[0];
-    $m = (int)$firstLine[1];
-    
-    $edges = [];
-    
-    for ($i = 1; $i <= $m; $i++) {
-        $line = explode(' ', trim($input[$i]));
-        $u = (int)$line[0];
-        $v = (int)$line[1];
-        $w = (int)$line[2];
-        $edges[] = ['u' => $u, 'v' => $v, 'w' => $w];
-    }
-    
-    usort($edges, function($a, $b) {
-        return $a['w'] - $b['w'];
-    });
-    
-    $uf = new UnionFind($n);
-    $totalCost = 0;
-    $edgesUsed = 0;
-    
-    foreach ($edges as $edge) {
-        if ($uf->union($edge['u'], $edge['v'])) {
-            $totalCost += $edge['w'];
-            $edgesUsed++;
-            if ($edgesUsed == $n - 1) break;
-        }
-    }
-    
-    echo ($edgesUsed == $n - 1) ? $totalCost . "\n" : "-1\n";
+$input = "3 3\n2 3 4\n3 4 5\n4 5 6";
+
+$lines = explode("\n", trim($input));
+[$n, $m] = array_map('intval', explode(' ', $lines[0]));
+$grid = [];
+for ($i = 1; $i <= $n; $i++) {
+    $grid[] = array_map('intval', explode(' ', $lines[$i]));
 }
 
-solvePowerGrid();
+echo solveDoomsdayEscape($n, $m, $grid);
 ?>
